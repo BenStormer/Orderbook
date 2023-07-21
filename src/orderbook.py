@@ -11,6 +11,7 @@ TODO:
     - Function for printing (__str__)
 """
 from datetime import datetime, timezone
+import time
 
 # Work on smallest part to largest
 class Order:
@@ -54,17 +55,16 @@ class Order:
         """
         Constructs a compact printout of the order.
         """
-        return (f"Order: {self.id:>5} | "
+        return (f"| Order: {self.id:>5} | "
                 f"{'Buy' if self.buy else 'Sell':>4} | "
-                f"{self.quantity:>4} | "
+                f"{self.quantity:>8} | "
                 f"{f'market price' if self.price == -1 else f'${self.price:.2f}':>12} | "
-                f"{self.time.strftime('%H:%M:%S, %m/%d/%y')}")
+                f"{self.time.strftime('%H:%M:%S, %m/%d/%y')} |")
 
 """
 - Create Orderbook class
     - Function for cancelling orders
         - Use order id to index map to figure out where to delete
-    - Function for printing out the orderbook
 """
 class Orderbook:
     """
@@ -83,24 +83,30 @@ class Orderbook:
         self.ticker = ticker
         self.bids = [] # List of bids sorted by price from high to low
         self.asks = [] # List of asks sorted by price from low to high
-        self.highest_bid = -1 # Pointer to highest bid price
-        self.lowest_ask = -1 # Pointer to lowest ask price
 
 
     def __str__(self):
+        string = f"{self.ticker:^70}\n"
+        string += '-'*70 + '\n'
+        string += (f"| {'Order ID':^12} | "
+                   f"{'Side':^4} | "
+                   f"{'Quantity':^8} | "
+                   f"{'Price Type':^12} | "
+                   f"{'Time Placed':^18} |") + '\n'
+        string += '-'*70 + '\n'
+        if self.bids:
+            for bid in self.bids:
+                string += bid.compact_str() + '\n'
+        if self.asks:
+            for ask in self.asks:
+                string += ask.compact_str() + '\n'
+        string += '-'*70 + '\n'
         num_bids = len(self.bids)
         num_asks = len(self.asks)
-        print(f"Total number of orders: {num_bids + num_asks}")
-        if self.bids:
-            print(f"Number of bids: {num_bids}. See details below:")
-            for bid in self.bids:
-                print(bid.compact_str())
-            print()
-        if self.asks:
-            print(f"Number of asks: {num_asks}. See details below:")
-            for ask in self.asks:
-                print(ask.compact_str())
-            print()
+        string += (f"BIDS: {num_bids}, "
+                   f"ASKS: {num_asks}, "
+                   f"TOTAL: {num_bids + num_asks}\n")
+        return string
 
 
     def get_price(self, order: Order, index: int) -> int:
@@ -127,23 +133,7 @@ class Orderbook:
         Args:
             order (Order): Order to be placed
         """
-        # Check that an appropriate sale is even possible
-        if ((order.buy and self.lowest_ask < 0) or
-            (not order.buy and self.highest_bid < 0)):
-            return self.queue_order(order)
-
-        if order.market:
-            return self.market_buy(order) if order.buy else self.market_sell(order)
-        # Limit order
-        else:
-            # Bid > existing ask
-            if order.buy and order.price > self.get_price(self.lowest_ask):
-                return self.limit_buy(order)
-            # Ask < existing bid
-            elif order.sell and order.price < self.get_price(self.highest_bid):
-                return self.limit_sell(order)
-            else:
-                return self.queue_order(order)
+        self.buy_order(order) if order.buy else self.sell_order(order)
 
 
     def queue_order(self, order):
@@ -154,30 +144,30 @@ class Orderbook:
             order (Order): The ordered to be queued
         """
         if order.buy:
-            if len(self.bids) == 0:
+            if len(self.bids) == 0 or order.price == -1:
                 self.bids.append(order)
             else:
                 insert_index = 0
                 last_index = len(self.bids) - 1
                 while order.price < self.bids[insert_index].price:
+                    insert_index += 1
                     if insert_index > last_index:
                         break
-                    insert_index += 1
-                self.bids.insert(insert_index, order)
+                self.bids.insert(insert_index - 1, order)
         else:
-            if len(self.asks) == 0:
+            if len(self.asks) == 0 or order.price == 1:
                 self.asks.append(order)
             else:
                 insert_index = 0
                 last_index = len(self.asks) - 1
                 while order.price > self.asks[insert_index].price:
+                    insert_index += 1
                     if insert_index > last_index:
                         break
-                    insert_index += 1
-                self.asks.insert(insert_index, order)
+                self.asks.insert(insert_index - 1, order)
 
 
-    def market_buy(self, order: Order):
+    def buy_order(self, order: Order):
         """
         Purchase stock(s) at market price.
 
@@ -185,30 +175,67 @@ class Orderbook:
             order (Order): The buy order
         """
         while order.quantity > 0 and self.asks:
+            # Limit order
+            if order.price != -1 and self.asks[0].price > order.price:
+                self.queue(order)
+                return
             ask_quantity = self.asks[0].quantity
             if order.quantity < ask_quantity:
                 self.asks[0].quantity -= order.quantity
-                order.quantity = 0
+                return
             elif order.quantity == ask_quantity:
-                self.asks.remove(0)
-                order.quantity = 0
+                del self.asks[0]
+                return
             else:
+                # Check if only market orders remain
+                if self.asks[0].price == -1 and order.price == -1:
+                    self.queue_order(order)
+                    return
                 order.quantity -= ask_quantity
-                self.asks.remove(0)
-        if order.quantity > 0:
-            queue_order(order)
-
-# Market sell
-# Limit buy
-# Limit sell
+                del self.asks[0]
+        self.queue_order(order)
 
 
+    def sell_order(self, order: Order):
+        """
+        Sell stock(s) at market price.
+
+        Args:
+            order (Order): The sell order
+        """
+        while order.quantity > 0 and self.bids:
+            # No bids are high enough to sell to
+            if order.price != -1 and self.bids[0].price < order.price:
+                self.queue(order)
+                return
+            bid_quantity = self.bids[0].quantity
+            if order.quantity < bid_quantity:
+                self.bids[0].quantity -= order.quantity
+                return
+            elif order.quantity == bid_quantity:
+                del self.bids[0]
+                return
+            else:
+                # Check if only market orders remain
+                if self.bids[0].price == -1 and order.price == -1:
+                    self.queue_order(order)
+                    return
+                order.quantity -= bid_quantity
+                del self.bids[0]
+        self.queue_order(order)
 
 
 def main():
-    test_order = Order(True, 50, 370)
-    test_order2 = Order(False, 2)
-    print(test_order.compact_str())
-    print(test_order2.compact_str())
+    print()
+    test_order = Order(buy=True, quantity=50, price=370)
+    test_order2 = Order(buy=True, quantity=2, price=380)
+    test_order3 = Order(buy=True, quantity=4)
+    test_order4 = Order(buy=False, quantity=70)
+    AAPL = Orderbook("AAPL")
+    AAPL.place_order(test_order)
+    AAPL.place_order(test_order2)
+    AAPL.place_order(test_order3)
+    AAPL.place_order(test_order4)
+    print(AAPL)
 
 main()
