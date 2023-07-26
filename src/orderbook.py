@@ -2,11 +2,6 @@
 ADDITIONAL IMPROVEMENTS:
 - Create system for logging all transactions that have occurred
 - Create system for cancelling order
-
-TODO:
-- Create Exchange with all orderbooks
-    - init with all orderbooks
-    - Function for printing exchange
 """
 from datetime import datetime, timezone
 import time
@@ -68,9 +63,6 @@ class Order:
 class Orderbook:
     """
     Represents all orders for a specific stock.
-
-    Args:
-        ticker (str): Ticker for a given stock
     """
 
     def __init__(self, ticker: str):
@@ -285,20 +277,80 @@ class Orderbook:
         self.queue_order(order)
 
 
+"""
+TODO:
+- Create Exchange with all orderbooks
+    - init with all orderbooks
+    - Function for printing exchange
+"""
+
+
+class Exchange:
+    """
+    Represents all orderbooks present.
+    """
+
+    def __init__(self):
+        """
+        Initialize the exchange.
+        """
+        self.orderbook_names = {}
+        self.orderbooks = []
+
+    def __str__(self):
+        string = ""
+        if len(self.orderbooks) == 0:
+            string += "No orderbooks are present. Empty exchange."
+            return string
+
+        for orderbook in self.orderbooks:
+            string += str(orderbook)
+        return string
+
+    def create_orderbook(self, ticker: str):
+        """
+        Create an orderbook.
+
+        Args:
+            ticker (str): The ticker for the orderbook
+        """
+        orderbook = Orderbook(ticker)
+        self.orderbook_names[ticker] = len(self.orderbooks)
+        self.orderbooks.append(orderbook)
+
+    def place_order(
+        self, ticker: str, buy: bool, quantity: int, price: float | int | None
+    ):
+        """
+        Place an order in a specific orderbook.
+
+        Args:
+            ticker (str): The ticker for the orderbook
+            buy (bool): Represents a buy (True) or sell (False) order
+            quantity (int): The number of stocks to buy/sell
+            price (Optional[float | int]): The price of the order placed.
+        """
+        if ticker not in self.orderbook_names:
+            self.create_orderbook(ticker)
+
+        orderbook_index = self.orderbook_names[ticker]
+        order = Order(buy, quantity, price)
+        self.orderbooks[orderbook_index].place_order(order)
+
+
 def main():
     print()
-    test_order = Order(buy=True, quantity=50, price=370)
-    test_order2 = Order(buy=True, quantity=2, price=380)
-    test_order3 = Order(buy=True, quantity=4)
-    test_order4 = Order(buy=False, quantity=51)
-    test_order5 = Order(buy=False, quantity=2, price=500)
-    AAPL = Orderbook("AAPL")
-    AAPL.place_order(test_order)
-    AAPL.place_order(test_order2)
-    AAPL.place_order(test_order3)
-    AAPL.place_order(test_order4)
-    AAPL.place_order(test_order5)
-    print(AAPL)
+    exchange = Exchange()
+    orders = [
+        (True, 50, 370),
+        (True, 2, 380),
+        (True, 4, None),
+        (False, 50, None),
+        (False, 2, 500),
+    ]
+    for order in orders:
+        exchange.place_order("AAPL", order[0], order[1], order[2])
+    print(exchange)
 
 
 if __name__ == "__main__":
