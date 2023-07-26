@@ -7,9 +7,9 @@ ajtulloch's orderbook here: https://github.com/ajtulloch/quantcup-orderbook,
 jeog's orderbook here: https://github.com/jeog/SimpleOrderbook
 
 ## Goals:
-- [ ] Integrate main functionality within Python
-  - [ ] Place market "buy" and "sell" orders
-  - [ ] Place limit "buy" and "sell" orders
+- [x] Integrate main functionality within Python
+  - [x] Place market "buy" and "sell" orders
+  - [x] Place limit "buy" and "sell" orders
 - [ ] Add tests
 - [ ] Re-create orderbook in C++ with optimized matching engine
   - Functionality should be the same as the Python version
