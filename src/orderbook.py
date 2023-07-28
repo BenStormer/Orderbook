@@ -20,7 +20,7 @@ class Order:
 
     id = 1
 
-    def __init__(self, buy: bool, quantity: int, price: float | int | None = None):
+    def __init__(self, buy: bool, quantity: int, price: float|int|None = None):
         """
         Constructs an order.
 
@@ -55,7 +55,8 @@ class Order:
             f"| Order: {self.id:>5} | "
             f"{'Buy' if self.buy else 'Sell':>4} | "
             f"{self.quantity:>8} | "
-            f"{'market price' if self.price == -1 else f'${self.price:.2f}':>12} | "
+            f"{'market price'
+               if self.price == -1 else f'${self.price:.2f}':>12} | "
             f"{self.time.strftime('%H:%M:%S, %m/%d/%y')} |"
         )
 
@@ -319,7 +320,7 @@ class Exchange:
         self.orderbooks.append(orderbook)
 
     def place_order(
-        self, ticker: str, buy: bool, quantity: int, price: float | int | None
+        self, ticker: str, buy: bool, quantity: int, price: float|int|None
     ):
         """
         Place an order in a specific orderbook.
