@@ -1,7 +1,7 @@
 """
 ADDITIONAL IMPROVEMENTS:
 - Create system for logging all transactions that have occurred
-- Create system for cancelling order
+- Create system for cancelling orders
 """
 from datetime import datetime, timezone
 
@@ -353,6 +353,7 @@ def main():
               (False, 1, -1)]
     for order in orders:
         exchange.place_order("AAPL", order[0], order[1], order[2])
+    print(exchange)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 all: orderbook
 
 orderbook: src/orderbook.cpp
-	g++ -o src/orderbook src/orderbook.cpp
+	g++ -std=c++20 -o src/orderbook src/orderbook.cpp
 
 .PHONY: install
 install:
