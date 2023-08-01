@@ -4,8 +4,6 @@ ADDITIONAL IMPROVEMENTS:
 - Create system for cancelling order
 """
 from datetime import datetime, timezone
-import time
-
 
 # Work on smallest part to largest
 class Order:
@@ -36,6 +34,11 @@ class Order:
         self.time = datetime.now(timezone.utc)
         Order.id += 1
 
+    def __eq__(self, other):
+        if isinstance(self, other.__class__):
+            return self.buy == other.buy and self.quantity == other.quantity and self.price == other.price
+        return False
+
     def __str__(self) -> str:
         """
         Constructs a readable printout of the order.
@@ -55,8 +58,7 @@ class Order:
             f"| Order: {self.id:>5} | "
             f"{'Buy' if self.buy else 'Sell':>4} | "
             f"{self.quantity:>8} | "
-            f"{'market price'
-               if self.price == -1 else f'${self.price:.2f}':>12} | "
+            f"{'market price' if self.price == -1 else f'${self.price:.2f}':>12} | "
             f"{self.time.strftime('%H:%M:%S, %m/%d/%y')} |"
         )
 
@@ -187,7 +189,8 @@ class Orderbook:
         while order.quantity > 0 and self.asks and ask_index < len(self.asks):
             ask_price = self.asks[ask_index].price
             if ask_price == -1:
-                pass
+                ask_index += 1
+                continue
             ask_quantity = self.asks[ask_index].quantity
             if order.quantity < ask_quantity:
                 self.asks[ask_index].quantity -= order.quantity
@@ -198,7 +201,8 @@ class Orderbook:
             else:
                 order.quantity -= self.asks[ask_index].quantity
                 del self.asks[ask_index]
-            ask_index += 1
+                ask_index = 0
+                continue
         self.queue_order(order)
 
     def market_sell(self, order: Order):
@@ -212,7 +216,8 @@ class Orderbook:
         while order.quantity > 0 and self.bids and bid_index < len(self.bids):
             bid_price = self.bids[bid_index].price
             if bid_price == -1:
-                pass
+                bid_index += 1
+                continue
             bid_quantity = self.bids[bid_index].quantity
             if order.quantity < bid_quantity:
                 self.bids[bid_index].quantity -= order.quantity
@@ -223,7 +228,8 @@ class Orderbook:
             else:
                 order.quantity -= self.bids[bid_index].quantity
                 del self.bids[bid_index]
-            bid_index += 1
+                bid_index = 0
+                continue
         self.queue_order(order)
 
     def limit_buy(self, order: Order):
@@ -234,7 +240,7 @@ class Orderbook:
             order (Order): The buy order
         """
         ask_index = 0
-        while order.quantity > 0 and self.asks and ask_index > len(self.asks):
+        while order.quantity > 0 and self.asks and ask_index < len(self.asks):
             ask_price = self.asks[ask_index].price
             if ask_price > order.price:
                 self.queue_order(order)
@@ -250,7 +256,8 @@ class Orderbook:
             else:
                 order.quantity -= self.asks[ask_index].quantity
                 del self.asks[ask_index]
-            ask_index += 1
+                ask_index = 0
+                continue
         self.queue_order(order)
 
     def limit_sell(self, order: Order):
@@ -258,7 +265,7 @@ class Orderbook:
         Sell stock(s) at limit price.
         """
         bid_index = 0
-        while order.quantity > 0 and self.bids and bid_index > len(self.bids):
+        while order.quantity > 0 and self.bids and bid_index < len(self.bids):
             bid_price = self.bids[bid_index].price
             if bid_price < order.price:
                 self.queue_order(order)
@@ -274,16 +281,10 @@ class Orderbook:
             else:
                 order.quantity -= bid_quantity
                 del self.bids[bid_index]
-            bid_index += 1
+                bid_index = 0
+                continue
         self.queue_order(order)
 
-
-"""
-TODO:
-- Create Exchange with all orderbooks
-    - init with all orderbooks
-    - Function for printing exchange
-"""
 
 
 class Exchange:
@@ -303,7 +304,7 @@ class Exchange:
         if len(self.orderbooks) == 0:
             string += "No orderbooks are present. Empty exchange."
             return string
-
+        
         for orderbook in self.orderbooks:
             string += str(orderbook)
         return string
@@ -342,16 +343,16 @@ class Exchange:
 def main():
     print()
     exchange = Exchange()
-    orders = [
-        (True, 50, 370),
-        (True, 2, 380),
-        (True, 4, None),
-        (False, 50, None),
-        (False, 2, 500),
-    ]
+    orders = [(True, 10, 10),
+              (True, 10, 20),
+              (True, 10, 30),
+              (True, 10, 40),
+              (True, 10, 50),
+              (False, 27, -1),
+              (False, 6, -1),
+              (False, 1, -1)]
     for order in orders:
         exchange.place_order("AAPL", order[0], order[1], order[2])
-    print(exchange)
 
 
 if __name__ == "__main__":
