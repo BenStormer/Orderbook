@@ -1,11 +1,5 @@
-"""
-ADDITIONAL IMPROVEMENTS:
-- Create system for logging all transactions that have occurred
-- Create system for cancelling orders
-"""
 from datetime import datetime, timezone
 
-# Work on smallest part to largest
 class Order:
     """
     Represents a singular order.
@@ -343,6 +337,7 @@ class Exchange:
 def main():
     print()
     exchange = Exchange()
+    # Example set of orders
     orders = [(True, 10, 10),
               (True, 10, 20),
               (True, 10, 30),
