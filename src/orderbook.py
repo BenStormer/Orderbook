@@ -5,7 +5,6 @@ ADDITIONAL IMPROVEMENTS:
 """
 from datetime import datetime, timezone
 
-# Work on smallest part to largest
 class Order:
     """
     Represents a singular order.
